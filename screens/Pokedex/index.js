@@ -5,94 +5,70 @@ import PokemonButton from "../../components/PokemonButton";
 import pokemonData from "../../assets/pokedex.json";
 import { useIsFocused } from "@react-navigation/native";
 import { useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+
 
 const PokedexScreen = ({ navigation }) => {
-  const [pokemons, setPokemons] = useState(pokemonData.map(pokemon => ({
-    id: pokemon.id,
-    name: pokemon.name.english,
-    captured: false,
-  })));
+  const [pokemons, setPokemons] = useState(pokemonData);
   const logo = require(`../../assets/pokemon.png`);
   const isFocused = useIsFocused();
-  const [capturedPokemons, setCapturedPokemons] = useState([]);
+  const caughtPokemons = useSelector(state => state.trainer.caught);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     // Aqui vamos recuperar do AsyncStorage os pokémons que já foram capturados
-    const getCapturedPokemons = async () => {
+    const getCaughtPokemons = async () => {
       try {
-        const jsonValue = await AsyncStorage.getItem('@captured_pokemons')
+        const jsonValue = await AsyncStorage.getItem('@caught_pokemons')
         if(jsonValue != null) {
-          setCapturedPokemons(JSON.parse(jsonValue));
+          dispatch({type: 'SET_CAUGHT', payload: JSON.parse(jsonValue)});
         }
       } catch(e) {
         console.log(e)
       }
     }
-    getCapturedPokemons();
-  }, []);
-  
-  
+    getCaughtPokemons();
+  }, [dispatch]);
+
   useEffect(() => {
-    const saveCapturedPokemons = async (capturedPokemons) => {
+    // Aqui vamos atualizar o estado captured no arquivo JSON correspondente para adicionar a propriedade captured que indica se o pokemon já foi capturado ou não
+    const updatedPokemons = pokemons.map(pokemon => ({
+      ...pokemon,
+      captured: caughtPokemons.some(caughtPokemon => caughtPokemon.id === pokemon.id),
+    }));
+    setPokemons(updatedPokemons);
+
+    // Aqui vamos salvar no AsyncStorage a nova lista de pokémons capturados
+    const saveCaughtPokemons = async (caughtPokemons) => {
       try {
-        const jsonValue = JSON.stringify(capturedPokemons)
-        await AsyncStorage.setItem('@captured_pokemons', jsonValue)
+        const jsonValue = JSON.stringify(caughtPokemons)
+        await AsyncStorage.setItem('@caught_pokemons', jsonValue)
       } catch (e) {
         console.log(e)
       }
     }
-    saveCapturedPokemons(capturedPokemons);
-  
-    console.log(capturedPokemons); // adicionado console.log para verificar o estado capturedPokemons
-  }, [capturedPokemons]);
-  
-
-  useEffect(() => {
-    // Aqui vamos atualizar o estado pokemons para adicionar a propriedade shadowed que indica se o pokemon já foi capturado ou não
-    setPokemons(pokemons.map(pokemon => ({
-      ...pokemon,
-      captured: capturedPokemons.includes(pokemon.id),
-    })));
-  }, [capturedPokemons]);
-  
-
-  useEffect(() => {
-    // Aqui vamos atualizar o estado capturedPokemons para remover os pokémons que foram capturados na tela do detalhe do pokémon
-    if (!isFocused) {
-      setPokemons(prevPokemons => {
-        const newPokemons = [...prevPokemons];
-        newPokemons.pop();
-        return newPokemons;
-      });
-    }
-  }, [isFocused]);
+    saveCaughtPokemons(caughtPokemons);
+  }, [caughtPokemons]);
 
   const renderPokemon = ({ item }) => {
-    const isCaptured = capturedPokemons.includes(item.id);
+    const isCaptured = caughtPokemons.some(caughtPokemon => caughtPokemon.id === item.id);
     const shadowStyle = isCaptured ? {} : styles.shadowed;
     
     return (
       <PokemonButton 
         id={item.id} 
-        shadowed={isCaptured} 
-        captured={item.captured}
+        captured={isCaptured}
         style={shadowStyle}
         onPress={() => {
-          const newPokemons = [...pokemons];
-          const index = newPokemons.findIndex(pokemon => pokemon.id === item.id);
-          newPokemons[index] = { ...newPokemons[index], captured: !newPokemons[index].captured };
-          setPokemons(newPokemons);
-  
           if (!isCaptured) {
-            setCapturedPokemons([...capturedPokemons, item.id]);
+            dispatch({type: 'CATCH_POKEMON', payload: item});
           } else {
-            setCapturedPokemons(capturedPokemons.filter(id => id !== item.id));
+            dispatch({type: 'RELEASE_POKEMON', payload: item.id});
           }
         }}
       />
     );
   };
-  
 
   return (
     <View style={styles.container}>
@@ -107,7 +83,6 @@ const PokedexScreen = ({ navigation }) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

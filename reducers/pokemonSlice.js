@@ -19,9 +19,20 @@ const pokemonSlice = createSlice({
       );
       localStorage.setItem(localStorageKey, JSON.stringify(state.caught));
     },
+    updatePokemon: (state, action) => {
+      const updatedPokemon = { ...action.payload };
+      const index = state.caught.findIndex(
+        (pokemon) => pokemon.id === updatedPokemon.id
+      );
+      if (index !== -1) {
+        state.caught[index] = updatedPokemon;
+        localStorage.setItem(localStorageKey, JSON.stringify(state.caught));
+      }
+    },
   },
 });
 
-export const { addPokemon, removePokemon } = pokemonSlice.actions;
+export const { addPokemon, removePokemon, updatePokemon } = pokemonSlice.actions;
 
 export default pokemonSlice.reducer;
+

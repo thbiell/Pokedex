@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Image, Text } from "react-native";
 import PropTypes from "prop-types";
 import { useNavigation } from "@react-navigation/native";
 
-const PokemonButton = ({ id, captured = false, shadow = false }) => {
+const PokemonButton = ({ id, captured }) => {
   const navigation = useNavigation();
 
   const idString = id.toString().padStart(3, "0");
@@ -12,15 +12,12 @@ const PokemonButton = ({ id, captured = false, shadow = false }) => {
   };
 
   const opacity = captured ? 0.8 : 0.4;
-  const shadowOpacity = shadow ? 0.8 : 0.4;
+  const shadowOpacity = captured ? 0.8 : 0;
 
   return (
     <Pressable
       onPress={navigateToPokemon}
-      style={[
-        styles.button,
-        { opacity, shadowOpacity },
-      ]}
+      style={[styles.button, { opacity, shadowOpacity }]}
     >
       <Image source={imageSrc} style={styles.image} />
       <Text style={styles.text}>{`#${idString}`}</Text>
@@ -30,8 +27,7 @@ const PokemonButton = ({ id, captured = false, shadow = false }) => {
 
 PokemonButton.propTypes = {
   id: PropTypes.number.isRequired,
-  captured: PropTypes.bool,
-  shadow: PropTypes.bool,
+  captured: PropTypes.bool.isRequired,
 };
 
 const styles = StyleSheet.create({

@@ -1,28 +1,49 @@
 import { View, Text, Image, StyleSheet, Pressable } from "react-native";
 import { addPokemon, removePokemon } from "../../reducers/pokemonSlice";
 import { useDispatch } from "react-redux";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
+const localStorageKey = "pokemonCaught";
 
 const PokemonScreen = ({ route }) => {
   const { id } = route.params;
   const idString = id.toString().padStart(3, "0");
   const imageSrc = require(`../../assets/images/${idString}.png`);
   const pokedex = require("../../assets/pokedex.json");
-  const [pokemon, setPokemon] = useState(pokedex.find((p) => p.id === id));
   const dispatch = useDispatch();
-  const [captured, setCaptured] = useState(pokemon.captured);
+  const [pokemon, setPokemon] = useState(pokedex.find((p) => p.id === id));
+  const [captured, setCaptured] = useState(false);
+
+  useEffect(() => {
+    const pokemonCaught = JSON.parse(localStorage.getItem(localStorageKey));
+    if (pokemonCaught && pokemonCaught.find(p => p.id === id)) {
+      setCaptured(true);
+      setPokemon({ ...pokemon, captured: true });
+    }
+  }, []);
 
   const handleAddToCollection = () => {
     dispatch(addPokemon(pokemon));
     setCaptured(true);
     setPokemon({ ...pokemon, captured: true });
+    const pokemonCaught = JSON.parse(localStorage.getItem(localStorageKey)) || [];
+    localStorage.setItem(
+      localStorageKey,
+      JSON.stringify([...pokemonCaught, { ...pokemon, captured: true }])
+    );
   };
 
   const handleRemoveToCollection = () => {
     dispatch(removePokemon(pokemon));
     setCaptured(false);
     setPokemon({ ...pokemon, captured: false });
+    const pokemonCaught = JSON.parse(localStorage.getItem(localStorageKey)) || [];
+    localStorage.setItem(
+      localStorageKey,
+      JSON.stringify(pokemonCaught.filter(p => p.id !== pokemon.id))
+    );
   };
+
 
   return (
     <View style={styles.container}>
